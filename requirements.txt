@@ -5,5 +5,4 @@ torchvision
 ultralytics
 pillow
 numpy
-gdown
 requests
