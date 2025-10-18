@@ -52,7 +52,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = convnext_tiny(weights=None)
 model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, len(CLASS_NAMES))
-checkpoint = torch.load(MODEL_PATH, map_location=device)
+checkpoint = torch.load(MODEL_PATH, map_location=device, weights_only=False)
+
 model.load_state_dict(checkpoint["state_dict"])
 model.to(device).eval()
 
