@@ -16,16 +16,15 @@ from ultralytics import YOLO  # for second model
 import requests
 import os
 
+import gdown
+
+
 def download_if_missing(url, dest_path):
     if not os.path.exists(dest_path):
         print(f"Downloading model from {url} ...")
-        with requests.get(url, stream=True) as r:
-            r.raise_for_status()
-            with open(dest_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
+        gdown.download(url, dest_path, quiet=False)
         print("✅ Download complete:", dest_path)
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.makedirs(os.path.join(BASE_DIR, "benthic_artifacts"), exist_ok=True)
