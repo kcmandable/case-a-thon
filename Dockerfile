@@ -21,7 +21,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose Hugging Face default port
 EXPOSE 8050
-
-# Run the Dash app
 CMD ["python", "app.py"]
 

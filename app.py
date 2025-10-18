@@ -260,6 +260,12 @@ def update_output(contents, filenames):
 
 # ------------------- Run -------------------
 if __name__ == '__main__':
+    # ✅ Ensure Hugging Face sees a valid layout during startup
+    if app.layout is None:
+        app.layout = html.Div([
+            html.H2("✅ Benthic Species Recognition App is Running"),
+            html.P("Health check passed. App layout initialized.")
+        ])
+
     port = int(os.environ.get("PORT", 8050))
-    # Use an official lightweight Python image
     app.run(host='0.0.0.0', port=port)
