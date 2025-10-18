@@ -261,4 +261,4 @@ def update_output(contents, filenames):
 # ------------------- Run -------------------
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8050))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run_server(host='0.0.0.0', port=port)
