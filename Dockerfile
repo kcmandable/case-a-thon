@@ -1,17 +1,27 @@
 # Use an official lightweight Python image
 FROM python:3.9-slim
 
-# Create a working directory
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies for OpenCV and other libraries
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
 WORKDIR /app
 
-# Copy all project files into the container
+# Copy all project files
 COPY . /app
 
-# Install dependencies
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port 7860 (Hugging Face default)
+# Expose Hugging Face default port
 EXPOSE 7860
 
-# Run your Dash app
+# Run the Dash app
 CMD ["python", "app.py"]
+
