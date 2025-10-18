@@ -44,9 +44,15 @@ SECOND_MODEL_PATH = os.path.join(ARTIFACTS_DIR, "benthic_yolov8_best.pt")
 CLASSES_PATH = os.path.join(ARTIFACTS_DIR, "classes.json")
 
 # ------------------- Auto-download -------------------
-download_if_missing(MODEL_URL, MODEL_PATH)
-download_if_missing(SECOND_MODEL_URL, SECOND_MODEL_PATH)
-download_if_missing(CLASSES_URL, CLASSES_PATH)
+# ------------------- Load local models only -------------------
+# Ensure all required files are present
+required_files = [MODEL_PATH, SECOND_MODEL_PATH, CLASSES_PATH]
+for file_path in required_files:
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"❌ Missing required file: {file_path}\n"
+                                f"Please add it to the benthic_artifacts folder before deployment.")
+print("✅ All required model files found locally.")
+
 
 # ------------------- Load Models -------------------
 with open(CLASSES_PATH, "r", encoding="utf-8") as f:
