@@ -1,10 +1,9 @@
 ---
 title: Case-a-thon
-emoji: 🐚
+emoji: 🌊
 colorFrom: blue
 colorTo: green
-sdk: dash
-sdk_version: 2.17.0
+sdk: docker
 app_file: app.py
 pinned: false
 license: mit
