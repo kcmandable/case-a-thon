@@ -269,5 +269,5 @@ def update_output(contents, filenames):
 
 # ------------------- Run App -------------------
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8050))  # Render assigns PORT dynamically
+    port = int(os.environ.get("PORT", 8050))
     app.run(host='0.0.0.0', port=port, debug=False)
