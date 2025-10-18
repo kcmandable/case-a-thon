@@ -28,6 +28,7 @@ def download_if_missing(url, dest_path):
         print("✅ Download complete:", dest_path)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+os.makedirs(os.path.join(BASE_DIR, "benthic_artifacts"), exist_ok=True)
 
 MODEL_PATH = os.path.join(BASE_DIR, "benthic_artifacts", "convnext_tiny_best.pth")
 SECOND_MODEL_PATH = os.path.join(BASE_DIR, "benthic_artifacts", "benthic_yolov8_best.pt")
