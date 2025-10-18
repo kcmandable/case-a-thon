@@ -13,10 +13,36 @@ from torchvision.models import convnext_tiny
 import json
 from ultralytics import YOLO  # for second model
 
-# ------------------- Paths -------------------
-MODEL_PATH = "C:/Users/kmand/Case-a-thon/benthic_artifacts/convnext_tiny_best.pth"
-CLASSES_PATH = "C:/Users/kmand/Case-a-thon/benthic_artifacts/classes.json"
-SECOND_MODEL_PATH = "C:/Users/kmand/Case-a-thon/benthic_artifacts/benthic_yolov8_best.pt"
+import requests
+import os
+
+def download_if_missing(url, dest_path):
+    if not os.path.exists(dest_path):
+        print(f"Downloading model from {url} ...")
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(dest_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+        print("✅ Download complete:", dest_path)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.join(BASE_DIR, "benthic_artifacts", "convnext_tiny_best.pth")
+SECOND_MODEL_PATH = os.path.join(BASE_DIR, "benthic_artifacts", "benthic_yolov8_best.pt")
+CLASSES_PATH = os.path.join(BASE_DIR, "benthic_artifacts", "classes.json")
+
+# URLs for downloading the models
+MODEL_URL = "https://drive.google.com/uc?export=download&id=153xQQUIGXJtt0H6wqn-fanxVGh5eZ3y7"
+SECOND_MODEL_URL = "https://drive.google.com/uc?export=download&id=11nygQYV9QyfXG2hcPgTIIGgH-My8GG7o"
+
+
+# Auto-download if missing
+download_if_missing(MODEL_URL, MODEL_PATH)
+download_if_missing(SECOND_MODEL_URL, SECOND_MODEL_PATH)
+
+
 
 # ------------------- Model Setup -------------------
 with open(CLASSES_PATH, "r", encoding="utf-8") as f:
