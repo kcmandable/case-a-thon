@@ -15,46 +15,49 @@ import json
 import requests
 import os
 
-# ------------------- Hugging Face Model Links -------------------
-# Replace "YOUR_USERNAME" with your actual Hugging Face username
+# ------------------- File Setup -------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ARTIFACTS_DIR = os.path.join(BASE_DIR, "benthic_artifacts")
+os.makedirs(ARTIFACTS_DIR, exist_ok=True)
+
+# Local file paths
+MODEL_PATH = os.path.join(ARTIFACTS_DIR, "convnext_tiny_best.pth")
+SECOND_MODEL_PATH = os.path.join(ARTIFACTS_DIR, "benthic_yolov8_best.pt")
+CLASSES_PATH = os.path.join(ARTIFACTS_DIR, "classes.json")
+
+# Remote URLs
 MODEL_URL = "https://huggingface.co/kcmandable/convnext_tiny_benthic/resolve/main/convnext_tiny_best.pth"
 SECOND_MODEL_URL = "https://huggingface.co/kcmandable/benthic_yolov8/resolve/main/benthic_yolov8_best.pt"
 CLASSES_URL = "https://huggingface.co/kcmandable/convnext_tiny_benthic/resolve/main/classes.json"
 
 # ------------------- Download Helper -------------------
-def download_if_missing(url, dest_path):
-    """Download a file from Hugging Face Hub if it's missing locally."""
-    if not os.path.exists(dest_path):
-        print(f"⬇️ Downloading from {url} ...")
-        response = requests.get(url)
-        if response.status_code == 200:
-            with open(dest_path, "wb") as f:
-                f.write(response.content)
-            print(f"✅ Downloaded: {dest_path}")
-        else:
-            raise Exception(f"Failed to download {url} — Status code {response.status_code}")
+def download_if_missing(url, file_path):
+    """Download file from Hugging Face if missing."""
+    if os.path.exists(file_path):
+        print(f"✅ Found {file_path}")
+        return
+    print(f"⬇️ Downloading {os.path.basename(file_path)} ...")
+    try:
+        response = requests.get(url, timeout=60)
+        response.raise_for_status()
+        with open(file_path, "wb") as f:
+            f.write(response.content)
+        print(f"✅ Downloaded and saved to {file_path}")
+    except Exception as e:
+        print(f"❌ Could not download {file_path} from {url}")
+        print(f"Error: {e}")
+        raise FileNotFoundError(f"Missing required file: {file_path}")
 
-# ------------------- File Paths -------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ARTIFACTS_DIR = os.path.join(BASE_DIR, "benthic_artifacts")
-os.makedirs(ARTIFACTS_DIR, exist_ok=True)
-
-MODEL_PATH = os.path.join(ARTIFACTS_DIR, "convnext_tiny_best.pth")
-SECOND_MODEL_PATH = os.path.join(ARTIFACTS_DIR, "benthic_yolov8_best.pt")
-CLASSES_PATH = os.path.join(ARTIFACTS_DIR, "classes.json")
-
-# ------------------- Auto-download -------------------
-# ------------------- Load local models only -------------------
-# Ensure all required files are present
-required_files = [MODEL_PATH, SECOND_MODEL_PATH, CLASSES_PATH]
-for file_path in required_files:
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"❌ Missing required file: {file_path}\n"
-                                f"Please add it to the benthic_artifacts folder before deployment.")
-print("✅ All required model files found locally.")
-
+# ------------------- Ensure Artifacts Exist -------------------
+for url, path in [
+    (MODEL_URL, MODEL_PATH),
+    (SECOND_MODEL_URL, SECOND_MODEL_PATH),
+    (CLASSES_URL, CLASSES_PATH),
+]:
+    download_if_missing(url, path)
 
 # ------------------- Load Models -------------------
+print("🚀 Loading models...")
 with open(CLASSES_PATH, "r", encoding="utf-8") as f:
     CLASS_NAMES = json.load(f)
 
@@ -68,6 +71,7 @@ model.load_state_dict(checkpoint["state_dict"])
 model.to(device).eval()
 
 second_model = YOLO(SECOND_MODEL_PATH)
+print("✅ Models loaded successfully!")
 
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -97,28 +101,26 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_
 server = app.server
 image_store = []
 
-# ------------------- Banner -------------------
+# ------------------- UI Components -------------------
 banner = html.Div([
     html.Img(src='/assets/wm.png', className='banner-image'),
     html.Div("Benthic Species Recognition", className='banner-title'),
     html.Img(src='/assets/wm.png', className='banner-image')
 ], className='banner')
 
-# ------------------- Info Boxes -------------------
 description_box = html.Div([
     html.H4("Description"),
     html.P(
-        "This is an AI-powered solution for benthic species identification in marine research. "
-        "It uses a ConvNeXt classifier and a YOLOv8 detector to recognize and locate species like "
-        "Scallops, Roundfish, Crabs, and more."
+        "This AI-powered tool identifies benthic species from underwater images using ConvNeXt for classification "
+        "and YOLOv8 for detection. It recognizes species like Scallops, Roundfish, and Crabs."
     )
 ], className='info-box')
 
 instruction_box = html.Div([
     html.H4("Instructions"),
     html.P(
-        "Upload your underwater image below. You'll see both classification and detection results. "
-        "Visit the Gallery to view previous uploads."
+        "Upload an underwater image below to view classification and detection results. "
+        "Visit the Gallery to see past uploads."
     )
 ], className='info-box')
 
@@ -132,34 +134,31 @@ def upload_page():
     return html.Div([
         banner,
         box_container,
-        html.Div([
-            dbc.Container([
-                dcc.Upload(
-                    id='upload-image',
-                    children=html.Div([
-                        html.Span('Drag and Drop or ', className='upload-text'),
-                        html.A('Select an Image', className='upload-text')
-                    ]),
-                    className='upload-box',
-                    accept='image/*',
-                    multiple=True
-                ),
-                dcc.Loading(
-                    id="loading-output",
-                    type="circle",
-                    color="#004080",
-                    children=html.Div(id='output-image-upload')
-                ),
-                html.Br(),
-                html.Div(
-                    dbc.Button("Go to Gallery", href="/gallery", color="secondary", style={
-                        'marginTop': '20px',
-                        'marginBottom': '30px'
-                    }),
-                    style={'textAlign': 'center'}
-                )
-            ])
-        ], style={'marginTop': '30px'}),
+        dbc.Container([
+            dcc.Upload(
+                id='upload-image',
+                children=html.Div([
+                    html.Span('Drag and Drop or ', className='upload-text'),
+                    html.A('Select an Image', className='upload-text')
+                ]),
+                className='upload-box',
+                accept='image/*',
+                multiple=True
+            ),
+            dcc.Loading(
+                id="loading-output",
+                type="circle",
+                color="#004080",
+                children=html.Div(id='output-image-upload')
+            ),
+            html.Br(),
+            html.Div(
+                dbc.Button("Go to Gallery", href="/gallery", color="secondary", style={
+                    'marginTop': '20px', 'marginBottom': '30px'
+                }),
+                style={'textAlign': 'center'}
+            )
+        ])
     ], className='center-box-wrapper')
 
 def gallery_page():
@@ -176,15 +175,15 @@ def gallery_page():
             ])
         ])
 
-    gallery_items = []
-    for item in image_store:
-        gallery_items.append(html.Div([
+    gallery_items = [
+        html.Div([
             html.H6(item.get('filename', 'Unknown'), style={'fontWeight': 'bold', 'color': '#003366'}),
             html.P(f"Prediction: {item['prediction']}"),
             html.P(f"Uploaded: {item['timestamp']}", style={'fontSize': '12px', 'color': '#666'}),
             html.Img(src=item['original']),
             html.Img(src=item['boxed'], style={'marginTop': '10px'})
-        ], className='gallery-item'))
+        ], className='gallery-item') for item in image_store
+    ]
 
     return html.Div([
         banner,
@@ -221,25 +220,17 @@ def display_page(pathname):
 def update_output(contents, filenames):
     if contents is None:
         return
-
     if not isinstance(contents, list):
-        contents = [contents]
-        filenames = [filenames]
-
+        contents, filenames = [contents], [filenames]
     children = []
-
     for content, filename in zip(contents, filenames):
-        content_type, content_string = content.split(',')
-        decoded = base64.b64decode(content_string)
-
         try:
+            decoded = base64.b64decode(content.split(',')[1])
             image = Image.open(io.BytesIO(decoded)).convert("RGB")
             image_array = np.array(image)
-
             prediction = classify_image(image_array)
             boxed_image_b64 = draw_box_on_image(image_array)
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
             image_store.append({
                 'original': content,
                 'boxed': boxed_image_b64,
@@ -247,7 +238,6 @@ def update_output(contents, filenames):
                 'timestamp': timestamp,
                 'filename': filename
             })
-
             children.append(html.Div([
                 html.H5(f'Prediction: {prediction}', style={'color': '#003366', 'fontWeight': 'bold'}),
                 html.Div([
@@ -257,21 +247,11 @@ def update_output(contents, filenames):
                 html.P(f"Uploaded: {timestamp}", style={'fontSize': '13px', 'color': '#555'}),
                 html.Hr()
             ], className='prediction-card'))
-
         except Exception as e:
             children.append(html.Div([html.P(f"Error processing {filename}: {str(e)}")]))
-
-
     return children
 
 # ------------------- Run -------------------
 if __name__ == '__main__':
-    # ✅ Ensure Hugging Face sees a valid layout during startup
-    if app.layout is None:
-        app.layout = html.Div([
-            html.H2("✅ Benthic Species Recognition App is Running"),
-            html.P("Health check passed. App layout initialized.")
-        ])
-
     port = int(os.environ.get("PORT", 8050))
     app.run(host='0.0.0.0', port=port)
